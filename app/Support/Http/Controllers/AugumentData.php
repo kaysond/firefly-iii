@@ -27,7 +27,6 @@ use Carbon\Carbon;
 use FireflyIII\Helpers\Collector\TransactionCollectorInterface;
 use FireflyIII\Models\Account;
 use FireflyIII\Models\AccountType;
-use FireflyIII\Models\Bill;
 use FireflyIII\Models\Budget;
 use FireflyIII\Models\BudgetLimit;
 use FireflyIII\Models\Tag;
@@ -38,8 +37,6 @@ use FireflyIII\Repositories\Budget\BudgetRepositoryInterface;
 use FireflyIII\Repositories\Category\CategoryRepositoryInterface;
 use FireflyIII\Support\CacheProperties;
 use Illuminate\Support\Collection;
-use Log;
-use Throwable;
 
 /**
  * Trait AugumentData
@@ -106,9 +103,6 @@ trait AugumentData
             if (0 === $categoryId) {
                 $categoryName = $transaction->transaction_journal_category_name;
                 $categoryId   = (int)$transaction->transaction_journal_category_id;
-            }
-            if (0 !== $categoryId) {
-                $categoryName = app('steam')->tryDecrypt($categoryName);
             }
 
             // if not set, set to zero:
@@ -559,9 +553,6 @@ trait AugumentData
                 $budgetName = $transaction->transaction_journal_budget_name;
                 $budgetId   = (int)$transaction->transaction_journal_budget_id;
             }
-            if (0 !== $budgetId) {
-                $budgetName = app('steam')->tryDecrypt($budgetName);
-            }
 
             // if not set, set to zero:
             if (!isset($sum[$budgetId][$currencyId])) {
@@ -626,9 +617,6 @@ trait AugumentData
             if (0 === $categoryId) {
                 $categoryName = $transaction->transaction_journal_category_name;
                 $categoryId   = (int)$transaction->transaction_journal_category_id;
-            }
-            if (0 !== $categoryId) {
-                $categoryName = app('steam')->tryDecrypt($categoryName);
             }
 
             // if not set, set to zero:

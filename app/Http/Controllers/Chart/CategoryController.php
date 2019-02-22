@@ -158,7 +158,7 @@ class CategoryController extends Controller
      *
      * @return JsonResponse
      */
-    public function frontpage(CategoryRepositoryInterface $repository, AccountRepositoryInterface $accountRepository): JsonResponse
+    public function frontPage(CategoryRepositoryInterface $repository, AccountRepositoryInterface $accountRepository): JsonResponse
     {
         $start = session('start', Carbon::now()->startOfMonth());
         $end   = session('end', Carbon::now()->endOfMonth());
@@ -185,26 +185,30 @@ class CategoryController extends Controller
         /** @var Category $category */
         foreach ($categories as $category) {
             $spentArray = $repository->spentInPeriodPerCurrency(new Collection([$category]), $accounts, $start, $end);
-            foreach ($spentArray as $currencyId => $spent) {
-                if (bccomp($spent, '0') === -1) {
-                    $currencies[$currencyId] = $currencies[$currencyId] ?? $currencyRepository->findNull((int)$currencyId);
-                    $tempData[]              = [
-                        'name'        => $category->name,
-                        'spent'       => bcmul($spent, '-1'),
-                        'spent_float' => (float)bcmul($spent, '-1'),
-                        'currency_id' => $currencyId,
-                    ];
+            foreach ($spentArray as $categoryId => $spentInfo) {
+                foreach ($spentInfo['spent'] as $currencyId => $row) {
+                    $spent = $row['spent'];
+                    if (bccomp($spent, '0') === -1) {
+                        $currencies[$currencyId] = $currencies[$currencyId] ?? $currencyRepository->findNull((int)$currencyId);
+                        $tempData[]              = [
+                            'name'        => $category->name,
+                            'spent'       => bcmul($spent, '-1'),
+                            'spent_float' => (float)bcmul($spent, '-1'),
+                            'currency_id' => $currencyId,
+                        ];
+                    }
                 }
             }
         }
+
         // no category per currency:
         $noCategory = $repository->spentInPeriodPcWoCategory(new Collection, $start, $end);
         foreach ($noCategory as $currencyId => $spent) {
             $currencies[$currencyId] = $currencies[$currencyId] ?? $currencyRepository->findNull($currencyId);
             $tempData[]              = [
                 'name'        => trans('firefly.no_category'),
-                'spent'       => bcmul($spent, '-1'),
-                'spent_float' => (float)bcmul($spent, '-1'),
+                'spent'       => bcmul($spent['spent'], '-1'),
+                'spent_float' => (float)bcmul($spent['spent'], '-1'),
                 'currency_id' => $currencyId,
             ];
         }

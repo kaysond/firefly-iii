@@ -35,6 +35,7 @@ use FireflyIII\Models\AccountMeta;
 use FireflyIII\Models\AccountType;
 use FireflyIII\Models\Attachment;
 use FireflyIII\Models\Bill;
+use FireflyIII\Models\Budget;
 use FireflyIII\Models\BudgetLimit;
 use FireflyIII\Models\Note;
 use FireflyIII\Models\Preference;
@@ -130,7 +131,7 @@ class UpgradeDatabase extends Command
             $currency = TransactionCurrency::where('code', $currencyPreference->data)->first();
             if (null === $currency) {
                 $this->line('Fall back to default currency in migrateBillsToRules().');
-                $currency = app('amount')->getDefaultCurrency();
+                $currency = app('amount')->getDefaultCurrencyByUser($user);
             }
 
             if (null === $ruleGroup) {
@@ -267,11 +268,12 @@ class UpgradeDatabase extends Command
         if (!Schema::hasTable('transaction_journals')) {
             return;
         }
-        $subQuery   = TransactionJournal::leftJoin('transactions', 'transactions.transaction_journal_id', '=', 'transaction_journals.id')
-                                        ->whereNull('transaction_journals.deleted_at')
-                                        ->whereNull('transactions.deleted_at')
-                                        ->groupBy(['transaction_journals.id'])
-                                        ->select(['transaction_journals.id', DB::raw('COUNT(transactions.id) AS t_count')]);
+        $subQuery = TransactionJournal::leftJoin('transactions', 'transactions.transaction_journal_id', '=', 'transaction_journals.id')
+                                      ->whereNull('transaction_journals.deleted_at')
+                                      ->whereNull('transactions.deleted_at')
+                                      ->groupBy(['transaction_journals.id'])
+                                      ->select(['transaction_journals.id', DB::raw('COUNT(transactions.id) AS t_count')]);
+        /** @noinspection PhpStrictTypeCheckingInspection */
         $result     = DB::table(DB::raw('(' . $subQuery->toSql() . ') AS derived'))
                         ->mergeBindings($subQuery->getQuery())
                         ->where('t_count', '>', 2)
@@ -292,23 +294,38 @@ class UpgradeDatabase extends Command
      */
     public function updateAccountCurrencies(): void
     {
+        Log::debug('Now in updateAccountCurrencies()');
+
+        $defaultConfig = (string)config('firefly.default_currency', 'EUR');
+        Log::debug(sprintf('System default currency is "%s"', $defaultConfig));
+
         $accounts = Account::leftJoin('account_types', 'account_types.id', '=', 'accounts.account_type_id')
                            ->whereIn('account_types.type', [AccountType::DEFAULT, AccountType::ASSET])->get(['accounts.*']);
         /** @var AccountRepositoryInterface $repository */
         $repository = app(AccountRepositoryInterface::class);
         $accounts->each(
-            function (Account $account) use ($repository) {
+            function (Account $account) use ($repository, $defaultConfig) {
                 $repository->setUser($account->user);
                 // get users preference, fall back to system pref.
-                $defaultCurrencyCode = app('preferences')->getForUser($account->user, 'currencyPreference', config('firefly.default_currency', 'EUR'))->data;
-                $defaultCurrency     = TransactionCurrency::where('code', $defaultCurrencyCode)->first();
-                $accountCurrency     = (int)$repository->getMetaValue($account, 'currency_id');
-                $openingBalance      = $account->getOpeningBalance();
-                $obCurrency          = (int)$openingBalance->transaction_currency_id;
+
+                // expand and debug routine.
+                $defaultCurrencyCode = app('preferences')->getForUser($account->user, 'currencyPreference', $defaultConfig)->data;
+                Log::debug(sprintf('Default currency code is "%s"', var_export($defaultCurrencyCode, true)));
+                if (!is_string($defaultCurrencyCode)) {
+                    $defaultCurrencyCode = $defaultConfig;
+                    Log::debug(sprintf('Default currency code is not a string, now set to "%s"', $defaultCurrencyCode));
+                }
+                $defaultCurrency = TransactionCurrency::where('code', $defaultCurrencyCode)->first();
+                $accountCurrency = (int)$repository->getMetaValue($account, 'currency_id');
+                $openingBalance  = $account->getOpeningBalance();
+                $obCurrency      = (int)$openingBalance->transaction_currency_id;
 
                 if (null === $defaultCurrency) {
-                    throw new UnexpectedValueException('The default currency is NULL, and this is more or less impossible.');
+                    throw new UnexpectedValueException(sprintf('User has a preference for "%s", but this currency does not exist.', $defaultCurrencyCode));
                 }
+                Log::debug(
+                    sprintf('Found default currency #%d (%s) while searching for "%s"', $defaultCurrency->id, $defaultCurrency->code, $defaultCurrencyCode)
+                );
 
                 // both 0? set to default currency:
                 if (0 === $accountCurrency && 0 === $obCurrency) {
@@ -448,11 +465,12 @@ class UpgradeDatabase extends Command
         /** @var BudgetLimit $budgetLimit */
         foreach ($budgetLimits as $budgetLimit) {
             if (null === $budgetLimit->transaction_currency_id) {
+                /** @var Budget $budget */
                 $budget = $budgetLimit->budget;
                 if (null !== $budget) {
                     $user = $budget->user;
                     if (null !== $user) {
-                        $currency                             = \Amount::getDefaultCurrencyByUser($user);
+                        $currency                             = app('amount')->getDefaultCurrencyByUser($user);
                         $budgetLimit->transaction_currency_id = $currency->id;
                         $budgetLimit->save();
                         $this->line(
@@ -464,6 +482,9 @@ class UpgradeDatabase extends Command
         }
     }
 
+    /**
+     *
+     */
     private function createNewTypes(): void
     {
         // create transaction type "Reconciliation".
@@ -490,7 +511,7 @@ class UpgradeDatabase extends Command
 
             // move description:
             $description = (string)$att->description;
-            if (\strlen($description) > 0) {
+            if ('' !== $description) {
                 // find or create note:
                 $note = $att->notes()->first();
                 if (null === $note) {
@@ -541,19 +562,19 @@ class UpgradeDatabase extends Command
      */
     private function removeCCLiabilities(): void
     {
-        $ccType = AccountType::where('type', AccountType::CREDITCARD)->first();
-        $debtType =AccountType::where('type', AccountType::DEBT)->first();
-        if(null === $ccType || null === $debtType) {
+        $ccType   = AccountType::where('type', AccountType::CREDITCARD)->first();
+        $debtType = AccountType::where('type', AccountType::DEBT)->first();
+        if (null === $ccType || null === $debtType) {
             return;
         }
         /** @var Collection $accounts */
         $accounts = Account::where('account_type_id', $ccType->id)->get();
-        foreach($accounts as $account) {
+        foreach ($accounts as $account) {
             $account->account_type_id = $debtType->id;
             $account->save();
             $this->line(sprintf('Converted credit card liability account "%s" (#%d) to generic debt liability.', $account->name, $account->id));
         }
-        if($accounts->count() > 0) {
+        if ($accounts->count() > 0) {
             $this->info('Credit card liability types are no longer supported and have been converted to generic debts. See: http://bit.ly/FF3-credit-cards');
         }
     }

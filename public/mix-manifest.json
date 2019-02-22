@@ -1,4 +1,7 @@
 {
-    "/v2/assets/js/app.js": "/v2/assets/js/app.js",
-    "/v2/assets/css/app.css": "/v2/assets/css/app.css"
+    "/v2/js/index.js": "/v2/js/index.js",
+    "/v2/js/manifest.js": "/v2/js/manifest.js",
+    "/v2/js/vendor.js": "/v2/js/vendor.js",
+    "/undefined.js": "/undefined.js",
+    "/v2/css/app.css": "/v2/css/app.css"
 }

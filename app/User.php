@@ -42,6 +42,7 @@ use FireflyIII\Models\Rule;
 use FireflyIII\Models\RuleGroup;
 use FireflyIII\Models\Tag;
 use FireflyIII\Models\Transaction;
+use FireflyIII\Models\TransactionGroup;
 use FireflyIII\Models\TransactionJournal;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -211,6 +212,7 @@ class User extends Authenticatable
      * Generates access token.
      *
      * @return string
+     * @throws \Exception
      */
     public function generateAccessToken(): string
     {
@@ -318,6 +320,17 @@ class User extends Authenticatable
     public function tags(): HasMany
     {
         return $this->hasMany(Tag::class);
+    }
+
+    /**
+     * @codeCoverageIgnore
+     * Link to transaction groups.
+     *
+     * @return HasMany
+     */
+    public function transactionGroups(): HasMany
+    {
+        return $this->hasMany(TransactionGroup::class);
     }
 
     /**

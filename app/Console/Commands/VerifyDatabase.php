@@ -25,7 +25,6 @@ declare(strict_types=1);
 
 namespace FireflyIII\Console\Commands;
 
-use Crypt;
 use DB;
 use FireflyIII\Models\Account;
 use FireflyIII\Models\AccountMeta;
@@ -42,10 +41,8 @@ use FireflyIII\Models\TransactionType;
 use FireflyIII\Repositories\User\UserRepositoryInterface;
 use FireflyIII\User;
 use Illuminate\Console\Command;
-use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
-use Log;
 use Schema;
 use stdClass;
 
@@ -450,12 +447,6 @@ class VerifyDatabase extends Command
         /** @var stdClass $entry */
         foreach ($set as $entry) {
             $objName = $entry->name;
-            try {
-                $objName = Crypt::decrypt($objName);
-            } catch (DecryptException $e) {
-                // it probably was not encrypted.
-                Log::debug(sprintf('Not a problem: %s', $e->getMessage()));
-            }
 
             // also count the transactions:
             $countTransactions = DB::table('budget_transaction')->where('budget_id', $entry->id)->count();
@@ -488,12 +479,6 @@ class VerifyDatabase extends Command
         /** @var stdClass $entry */
         foreach ($set as $entry) {
             $objName = $entry->name;
-            try {
-                $objName = Crypt::decrypt($objName);
-            } catch (DecryptException $e) {
-                // it probably was not encrypted.
-                Log::debug(sprintf('Not a problem: %s', $e->getMessage()));
-            }
 
             // also count the transactions:
             $countTransactions = DB::table('category_transaction')->where('category_id', $entry->id)->count();
@@ -627,12 +612,6 @@ class VerifyDatabase extends Command
         /** @var stdClass $entry */
         foreach ($set as $entry) {
             $objName = $entry->name;
-            try {
-                $objName = Crypt::decrypt($objName);
-            } catch (DecryptException $e) {
-                // it probably was not encrypted.
-                Log::debug(sprintf('Not a problem: %s', $e->getMessage()));
-            }
 
             $line = sprintf(
                 'User #%d (%s) has %s #%d ("%s") which has no transactions.',

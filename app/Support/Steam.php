@@ -23,12 +23,10 @@ declare(strict_types=1);
 namespace FireflyIII\Support;
 
 use Carbon\Carbon;
-use Crypt;
 use DB;
 use FireflyIII\Models\Account;
 use FireflyIII\Models\Transaction;
 use FireflyIII\Repositories\Account\AccountRepositoryInterface;
-use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Collection;
 use stdClass;
 
@@ -223,7 +221,7 @@ class Steam
      * @param \FireflyIII\Models\Account $account
      * @param \Carbon\Carbon             $date
      *
-     * @return string
+     * @return array
      */
     public function balancePerCurrency(Account $account, Carbon $date): array
     {
@@ -378,22 +376,6 @@ class Steam
     }
 
     /**
-     * @param int $isEncrypted
-     * @param     $value
-     *
-     * @return string
-     * @throws \Illuminate\Contracts\Encryption\DecryptException
-     */
-    public function decrypt(int $isEncrypted, string $value): string
-    {
-        if (1 === $isEncrypted) {
-            return Crypt::decrypt($value);
-        }
-
-        return $value;
-    }
-
-    /**
      * @param array $accounts
      *
      * @return array
@@ -490,19 +472,4 @@ class Steam
         return $amount;
     }
 
-    /**
-     * @param $value
-     *
-     * @return mixed
-     */
-    public function tryDecrypt($value)
-    {
-        try {
-            $value = Crypt::decrypt($value);
-        } catch (DecryptException $e) {
-            // do not care.
-        }
-
-        return $value;
-    }
 }

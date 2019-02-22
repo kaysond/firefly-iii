@@ -2,6 +2,8 @@
 
 echo "Now in entrypoint.sh for Firefly III"
 
+lscpu
+
 # make sure the correct directories exists (suggested by @chrif):
 echo "Making directories..."
 mkdir -p $FIREFLY_PATH/storage/app/public
@@ -20,6 +22,12 @@ mkdir -p $FIREFLY_PATH/storage/upload
 
 echo "Touch DB file (if SQLlite)..."
 if [[ $DB_CONNECTION == "sqlite" ]]
+then
+    touch $FIREFLY_PATH/storage/database/database.sqlite
+    echo "Touched!"
+fi
+
+if [[ $FF_DB_CONNECTION == "sqlite" ]]
 then
     touch $FIREFLY_PATH/storage/database/database.sqlite
     echo "Touched!"
@@ -44,6 +52,7 @@ php artisan package:discover
 
 echo "Run various artisan commands..."
 php artisan migrate --seed
+php artisan firefly:decrypt-all
 php artisan firefly:upgrade-database
 php artisan firefly:verify
 php artisan passport:install
