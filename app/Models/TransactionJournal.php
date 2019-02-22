@@ -23,7 +23,6 @@ declare(strict_types=1);
 namespace FireflyIII\Models;
 
 use Carbon\Carbon;
-use Crypt;
 use FireflyIII\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
@@ -84,7 +83,7 @@ class TransactionJournal extends Model
             'created_at'    => 'datetime',
             'updated_at'    => 'datetime',
             'deleted_at'    => 'datetime',
-            'date'          => 'date',
+            'date'          => 'datetime',
             'interest_date' => 'date',
             'book_date'     => 'date',
             'process_date'  => 'date',
@@ -187,24 +186,6 @@ class TransactionJournal extends Model
     }
 
     /**
-     * @codeCoverageIgnore
-     *
-     * @param $value
-     *
-     * @return string|null
-     * @throws \Illuminate\Contracts\Encryption\DecryptException
-     */
-    public function getDescriptionAttribute($value): ?string
-    {
-        if ($this->encrypted) {
-            return Crypt::decrypt($value);
-        }
-
-        return $value;
-    }
-
-    /**
-     * @codeCoverageIgnore
      * @return bool
      */
     public function isDeposit(): bool
@@ -317,20 +298,6 @@ class TransactionJournal extends Model
 
     /**
      * @codeCoverageIgnore
-     *
-     * @param $value
-     *
-     * @throws \Illuminate\Contracts\Encryption\EncryptException
-     */
-    public function setDescriptionAttribute($value): void
-    {
-        $encrypt                         = config('firefly.encryption');
-        $this->attributes['description'] = $encrypt ? Crypt::encrypt($value) : $value;
-        $this->attributes['encrypted']   = $encrypt;
-    }
-
-    /**
-     * @codeCoverageIgnore
      * @return HasMany
      */
     public function sourceJournalLinks(): HasMany
@@ -354,6 +321,15 @@ class TransactionJournal extends Model
     public function transactionCurrency(): BelongsTo
     {
         return $this->belongsTo(TransactionCurrency::class);
+    }
+
+    /**
+     * @codeCoverageIgnore
+     * @return BelongsToMany
+     */
+    public function transactionGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class);
     }
 
     /**

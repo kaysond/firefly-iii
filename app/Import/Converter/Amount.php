@@ -82,7 +82,7 @@ class Amount implements ConverterInterface
             $value  = str_replace($search, '', $value);
             Log::debug(sprintf('No decimal character found. Converted amount from "%s" to "%s".', $original, $value));
         }
-        if ('.' === $value{0}) {
+        if (strpos($value, '.') === 0) {
             $value = '0' . $value;
         }
 
@@ -219,10 +219,10 @@ class Amount implements ConverterInterface
         if (0 === strpos($value, '--')) {
             $value = substr($value, 2);
         }
-
-
-        $str = preg_replace('/[^\-\(\)\.\,0-9 ]/', '', $value);
-        $len = \strlen($str);
+        // have to strip the € because apparantly the Postbank (DE) thinks "1.000,00 €" is a normal way to format a number.
+        $value = trim((string)str_replace(['€'], '', $value));
+        $str   = preg_replace('/[^\-\(\)\.\,0-9 ]/', '', $value);
+        $len   = \strlen($str);
         if ('(' === $str[0] && ')' === $str[$len - 1]) {
             $str = '-' . substr($str, 1, $len - 2);
         }

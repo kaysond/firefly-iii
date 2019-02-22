@@ -179,7 +179,7 @@ class TransactionController extends Controller
         $baseUrl = $request->getSchemeAndHttpHost() . '/api/v1';
         $manager->setSerializer(new JsonApiSerializer($baseUrl));
 
-        $events = $this->repository->getPiggyBankEventsByTr($transaction);
+        $events = $this->repository->getPiggyBankEventsbyTr($transaction);
 
         /** @var PiggyBankEventTransformer $transformer */
         $transformer = app(PiggyBankEventTransformer::class);
@@ -246,7 +246,7 @@ class TransactionController extends Controller
         $data['user'] = auth()->user()->id;
         $journal      = $repository->store($data);
 
-        event(new StoredTransactionJournal($journal, 0));
+        event(new StoredTransactionJournal($journal));
 
         $manager = new Manager();
         $baseUrl = $request->getSchemeAndHttpHost() . '/api/v1';

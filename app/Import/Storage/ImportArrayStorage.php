@@ -139,6 +139,7 @@ class ImportArrayStorage
                         $processor = app(Processor::class);
                         $processor->make($rule);
                         $processor->handleTransactionJournal($journal);
+                        $journal->refresh();
                         if ($rule->stop_processing) {
                             return false;
                         }
@@ -226,7 +227,7 @@ class ImportArrayStorage
             throw new FireflyException('Could not encode import array. Please see the logs.');
             // @codeCoverageIgnoreEnd
         }
-        $hash = hash('sha256', $json, false);
+        $hash = hash('sha256', $json);
         Log::debug(sprintf('The hash is: %s', $hash));
 
         return $hash;
@@ -337,7 +338,7 @@ class ImportArrayStorage
             'description' => null,
             'latitude'    => null,
             'longitude'   => null,
-            'zoom_level'   => null,
+            'zoom_level'  => null,
             'tagMode'     => 'nothing',
         ];
         $tag  = $repository->store($data);
@@ -457,7 +458,7 @@ class ImportArrayStorage
 
             Log::debug(sprintf('Going to store entry %d of %d', $index + 1, $count));
             // convert the date to an object:
-            $store['date']        = Carbon::createFromFormat('Y-m-d', $store['date']);
+            $store['date']        = Carbon::parse($store['date'], config('app.timezone'));
             $store['description'] = '' === $store['description'] ? '(empty description)' : $store['description'];
             // store the journal.
             try {
@@ -556,7 +557,7 @@ class ImportArrayStorage
                 Log::debug(sprintf('Comparison is a hit! (%s)', $hits));
 
                 // compare date:
-                $transferDate = $transfer->date->format('Y-m-d');
+                $transferDate = $transfer->date->format('Y-m-d H:i:s');
                 Log::debug(sprintf('Comparing dates "%s" to "%s"', $transaction['date'], $transferDate));
                 if ($transaction['date'] !== $transferDate) {
                     continue; // @codeCoverageIgnore

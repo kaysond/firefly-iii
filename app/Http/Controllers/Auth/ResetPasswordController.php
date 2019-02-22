@@ -23,7 +23,6 @@ declare(strict_types=1);
 
 namespace FireflyIII\Http\Controllers\Auth;
 
-use FireflyConfig;
 use FireflyIII\Http\Controllers\Controller;
 use FireflyIII\User;
 use Illuminate\Foundation\Auth\ResetsPasswords;
@@ -60,40 +59,6 @@ class ResetPasswordController extends Controller
     }
 
     /**
-     * Display the password reset view for the given token.
-     *
-     * If no token is present, display the link request form.
-     *
-     * @param  Request     $request
-     * @param  string|null $token
-     *
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-     */
-    public function showResetForm(Request $request, $token = null)
-    {
-        $loginProvider = config('firefly.login_provider');
-        if ('eloquent' !== $loginProvider) {
-            $message = sprintf('Cannot reset password when authenticating over "%s".', $loginProvider);
-
-            return view('error', compact('message'));
-        }
-
-        // is allowed to register?
-        $singleUserMode    = FireflyConfig::get('single_user_mode', config('firefly.configuration.single_user_mode'))->data;
-        $userCount         = User::count();
-        $allowRegistration = true;
-        $pageTitle         = (string)trans('firefly.reset_pw_page_title');
-        if (true === $singleUserMode && $userCount > 0) {
-            $allowRegistration = false;
-        }
-
-        /** @noinspection PhpUndefinedFieldInspection */
-        return view('auth.passwords.reset')->with(
-            ['token' => $token, 'email' => $request->email, 'allowRegistration' => $allowRegistration,'pageTitle' => $pageTitle]
-        );
-    }
-
-    /**
      * Reset the given user's password.
      *
      * @param  \Illuminate\Http\Request $request
@@ -110,7 +75,13 @@ class ResetPasswordController extends Controller
             return view('error', compact('message'));
         }
 
-        $this->validate($request, $this->rules(), $this->validationErrorMessages());
+        $rules = [
+            'token'    => 'required',
+            'email'    => 'required|email',
+            'password' => 'required|confirmed|min:6|secure_password',
+        ];
+
+        $this->validate($request, $rules, $this->validationErrorMessages());
 
         // Here we will attempt to reset the user's password. If it is successful we
         // will update the password on an actual user model and persist it to the
@@ -130,16 +101,36 @@ class ResetPasswordController extends Controller
     }
 
     /**
-     * Get the password reset validation rules.
+     * Display the password reset view for the given token.
      *
-     * @return array
+     * If no token is present, display the link request form.
+     *
+     * @param  Request     $request
+     * @param  string|null $token
+     *
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
      */
-    protected function rules()
+    public function showResetForm(Request $request, $token = null)
     {
-        return [
-            'token' => 'required',
-            'email' => 'required|email',
-            'password' => 'required|confirmed|min:6|secure_password',
-        ];
+        $loginProvider = config('firefly.login_provider');
+        if ('eloquent' !== $loginProvider) {
+            $message = sprintf('Cannot reset password when authenticating over "%s".', $loginProvider);
+
+            return view('error', compact('message'));
+        }
+
+        // is allowed to register?
+        $singleUserMode    = app('fireflyconfig')->get('single_user_mode', config('firefly.configuration.single_user_mode'))->data;
+        $userCount         = User::count();
+        $allowRegistration = true;
+        $pageTitle         = (string)trans('firefly.reset_pw_page_title');
+        if (true === $singleUserMode && $userCount > 0) {
+            $allowRegistration = false;
+        }
+
+        /** @noinspection PhpUndefinedFieldInspection */
+        return view('auth.passwords.reset')->with(
+            ['token' => $token, 'email' => $request->email, 'allowRegistration' => $allowRegistration, 'pageTitle' => $pageTitle]
+        );
     }
 }

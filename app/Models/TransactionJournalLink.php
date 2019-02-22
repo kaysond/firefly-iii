@@ -23,7 +23,6 @@ declare(strict_types=1);
 namespace FireflyIII\Models;
 
 use Carbon\Carbon;
-use Crypt;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -95,22 +94,6 @@ class TransactionJournalLink extends Model
 
     /**
      * @codeCoverageIgnore
-     *
-     * @param $value
-     *
-     * @return null|string
-     */
-    public function getCommentAttribute($value): ?string
-    {
-        if (null !== $value) {
-            return app('steam')->tryDecrypt($value);
-        }
-
-        return null;
-    }
-
-    /**
-     * @codeCoverageIgnore
      * @return BelongsTo
      */
     public function linkType(): BelongsTo
@@ -125,23 +108,6 @@ class TransactionJournalLink extends Model
     public function notes(): MorphMany
     {
         return $this->morphMany(Note::class, 'noteable');
-    }
-
-    /**
-     * @codeCoverageIgnore
-     *
-     * @param $value
-     *
-     * @throws \Illuminate\Contracts\Encryption\EncryptException
-     */
-    public function setCommentAttribute($value): void
-    {
-        if (null !== $value && \strlen($value) > 0) {
-            $this->attributes['comment'] = Crypt::encrypt($value);
-
-            return;
-        }
-        $this->attributes['comment'] = null;
     }
 
     /**

@@ -24,7 +24,6 @@ declare(strict_types=1);
 namespace FireflyIII\Models;
 
 use Carbon\Carbon;
-use Crypt;
 use FireflyIII\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -86,37 +85,6 @@ class Category extends Model
             }
         }
         throw new NotFoundHttpException;
-    }
-
-    /**
-     * @codeCoverageIgnore
-     *
-     * @param $value
-     *
-     * @return string|null
-     * @throws \Illuminate\Contracts\Encryption\DecryptException
-     */
-    public function getNameAttribute($value): ?string
-    {
-        if ($this->encrypted) {
-            return Crypt::decrypt($value);
-        }
-
-        return $value;
-    }
-
-    /**
-     * @codeCoverageIgnore
-     *
-     * @param $value
-     *
-     * @throws \Illuminate\Contracts\Encryption\EncryptException
-     */
-    public function setNameAttribute($value): void
-    {
-        $encrypt                       = config('firefly.encryption');
-        $this->attributes['name']      = $encrypt ? Crypt::encrypt($value) : $value;
-        $this->attributes['encrypted'] = $encrypt;
     }
 
     /**

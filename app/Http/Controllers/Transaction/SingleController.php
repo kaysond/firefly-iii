@@ -190,6 +190,7 @@ class SingleController extends Controller
      * Show a special JSONified view of a transaction, for easier debug purposes.
      *
      * @param TransactionJournal $journal
+     *
      * @codeCoverageIgnore
      * @return JsonResponse
      */
@@ -400,7 +401,7 @@ class SingleController extends Controller
             session()->flash('info', $this->attachments->getMessages()->get('attachments'));
         }
 
-        event(new StoredTransactionJournal($journal, $data['piggy_bank_id']));
+        event(new StoredTransactionJournal($journal));
 
         session()->flash('success_uri', route('transactions.show', [$journal->id]));
         session()->flash('success', (string)trans('firefly.stored_journal', ['description' => $journal->description]));

@@ -107,7 +107,7 @@ trait TransactionServiceTrait
             return $repository->findByName($accountName, [AccountType::ASSET]);
         }
         // for revenue and expense:
-        if (\strlen($accountName) > 0) {
+        if ('' !== $accountName) {
             /** @var AccountFactory $factory */
             $factory = app(AccountFactory::class);
             $factory->setUser($this->user);
@@ -216,6 +216,11 @@ trait TransactionServiceTrait
             $transaction->save();
 
             return;
+        }
+        // enable currency if not enabled:
+        if (false === $currency->enabled) {
+            $currency->enabled = true;
+            $currency->save();
         }
 
         $transaction->foreign_currency_id = $currency->id;

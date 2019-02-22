@@ -23,14 +23,9 @@ declare(strict_types=1);
 namespace FireflyIII\Models;
 
 use Carbon\Carbon;
-use Crypt;
-use Exception;
-use FireflyIII\Exceptions\FireflyException;
 use FireflyIII\User;
-use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Log;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -54,6 +49,7 @@ class Preference extends Model
         = [
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
+            'data'       => 'array',
         ];
 
     /** @var array Fields that can be filled */
@@ -79,54 +75,6 @@ class Preference extends Model
             }
         }
         throw new NotFoundHttpException;
-    }
-
-
-    /**
-     * @param $value
-     *
-     * @return mixed
-     *
-     * @throws FireflyException
-     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
-     */
-    public function getDataAttribute($value)
-    {
-        $result = null;
-        try {
-            $data = Crypt::decrypt($value);
-        } catch (DecryptException $e) {
-            Log::error(sprintf('Could not decrypt preference: %s', $e->getMessage()), ['id' => $this->id, 'name' => $this->name, 'data' => $value]);
-            throw new FireflyException(
-                sprintf('Could not decrypt preference #%d. If this error persists, please run "php artisan cache:clear" on the command line.', $this->id)
-            );
-        }
-        $serialized = true;
-        try {
-            unserialize($data, ['allowed_classes' => false]);
-        } /** @noinspection BadExceptionsProcessingInspection */ catch (Exception $e) {
-            $serialized = false;
-        }
-        if (!$serialized) {
-            $result = json_decode($data, true);
-        }
-        if ($serialized) {
-            Log::error(sprintf('Preference #%d ("%s") was stored as serialised object. It will be deleted and recreated.', $this->id, $this->name));
-        }
-
-        return $result;
-    }
-
-    /**
-     * @codeCoverageIgnore
-     *
-     * @param $value
-     *
-     * @throws \Illuminate\Contracts\Encryption\EncryptException
-     */
-    public function setDataAttribute($value): void
-    {
-        $this->attributes['data'] = Crypt::encrypt(json_encode($value));
     }
 
     /**

@@ -1,5 +1,27 @@
 <?php
 
+/**
+ * ApplyRules.php
+ * Copyright (c) 2018 thegrumpydictator@gmail.com
+ *
+ * This file is part of Firefly III.
+ *
+ * Firefly III is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Firefly III is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Firefly III. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+declare(strict_types=1);
+
 namespace FireflyIII\Console\Commands;
 
 use Carbon\Carbon;
@@ -19,6 +41,7 @@ use Illuminate\Support\Collection;
 /**
  *
  * Class ApplyRules
+ *
  * @codeCoverageIgnore
  */
 class ApplyRules extends Command
@@ -162,6 +185,8 @@ class ApplyRules extends Command
     private function applyRuleSelection(Collection $rules, Collection $transactions, bool $breakProcessing): void
     {
         $bar = $this->output->createProgressBar($rules->count() * $transactions->count());
+
+        /** @var Rule $rule */
         foreach ($rules as $rule) {
             /** @var Processor $processor */
             $processor = app(Processor::class);
@@ -169,7 +194,7 @@ class ApplyRules extends Command
 
             /** @var Transaction $transaction */
             foreach ($transactions as $transaction) {
-                /** @var Rule $rule */
+                /** @noinspection DisconnectedForeachInstructionInspection */
                 $bar->advance();
                 $result = $processor->handleTransaction($transaction);
                 if (true === $result) {
@@ -188,6 +213,7 @@ class ApplyRules extends Command
 
     /**
      *
+     * @throws \FireflyIII\Exceptions\FireflyException
      */
     private function grabAllRules(): void
     {
@@ -204,6 +230,7 @@ class ApplyRules extends Command
 
     /**
      *
+     * @throws \FireflyIII\Exceptions\FireflyException
      */
     private function parseDates(): void
     {
